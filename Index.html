@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Bonds Playtime</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f0f9ff;
+            /* Fun dot pattern background */
+            background-image: radial-gradient(#bae6fd 20%, transparent 20%), radial-gradient(#bae6fd 20%, transparent 20%);
+            background-position: 0 0, 25px 25px;
+            background-size: 50px 50px;
+        }
+
+        h1, .number-font {
+            font-family: 'Fredoka One', cursive;
+        }
+
+        /* Number Bond Diagram Lines */
+        .bond-line-left {
+            position: absolute;
+            top: 50%;
+            left: 25%;
+            width: 50%;
+            height: 4px;
+            background-color: #475569;
+            transform: rotate(-45deg);
+            transform-origin: top left;
+            z-index: 0;
+        }
+        
+        .bond-line-right {
+            position: absolute;
+            top: 50%;
+            right: 25%;
+            width: 50%;
+            height: 4px;
+            background-color: #475569;
+            transform: rotate(45deg);
+            transform-origin: top right;
+            z-index: 0;
+        }
+
+        .circle-node {
+            z-index: 10;
+            position: relative;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, background-color 0.3s ease;
+        }
+
+        .pop-in {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            50% { transform: translateX(8px); }
+            75% { transform: translateX(-8px); }
+        }
+
+        .celebrate {
+            animation: bounce 0.6s ease infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-15px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="max-w-lg w-full bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-sky-200">
+        
+        <!-- Header & Controls -->
+        <div class="bg-sky-400 p-4 text-white flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl tracking-wide text-shadow">Number Bonds</h1>
+                <p class="text-sky-100 text-sm font-bold opacity-80 mt-1"><i class="fas fa-gamepad"></i> Playtime (48)</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="font-bold text-lg">Score:</span>
+                <div class="bg-white text-sky-500 font-bold px-4 py-1 rounded-full text-xl shadow-inner number-font" id="scoreDisplay">
+                    0
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Bar -->
+        <div class="bg-sky-50 p-3 flex flex-wrap justify-center gap-2 border-b-2 border-sky-100">
+            <span class="font-bold text-slate-600 self-center w-full text-center sm:w-auto sm:text-left mb-1 sm:mb-0 mr-2">Bonds to:</span>
+            <button onclick="setTarget(10)" id="btn-target-10" class="target-btn px-3 py-2 rounded-xl font-bold bg-sky-500 border-2 border-sky-600 text-white shadow-md transition">10</button>
+            <button onclick="setTarget(20)" id="btn-target-20" class="target-btn px-3 py-2 rounded-xl font-bold bg-white border-2 border-slate-200 text-slate-500 hover:bg-sky-100 transition">20</button>
+            <button onclick="setTarget(100)" id="btn-target-100" class="target-btn px-3 py-2 rounded-xl font-bold bg-white border-2 border-slate-200 text-slate-500 hover:bg-sky-100 transition">100</button>
+            <button onclick="setTarget(1000)" id="btn-target-1000" class="target-btn px-3 py-2 rounded-xl font-bold bg-white border-2 border-slate-200 text-slate-500 hover:bg-sky-100 transition">1000</button>
+        </div>
+
+        <!-- Game Area -->
+        <div class="p-8 relative">
+            
+            <!-- Feedback Message -->
+            <div id="feedback" class="absolute top-2 left-0 w-full text-center h-8 flex items-center justify-center font-bold text-xl text-emerald-500 opacity-0 transition-opacity duration-300">
+                Great Job!
+            </div>
+
+            <!-- Number Bond Visual -->
+            <div class="relative w-full h-64 mt-6 mb-8" id="bond-diagram">
+                <!-- Lines -->
+                <div class="bond-line-left"></div>
+                <div class="bond-line-right"></div>
+
+                <!-- Whole (Target) -->
+                <div class="absolute top-0 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
+                    <div class="w-24 h-24 bg-purple-500 rounded-full circle-node flex items-center justify-center border-4 border-purple-600 text-white text-5xl number-font" id="node-whole">
+                        10
+                    </div>
+                    <span class="text-xs font-bold text-purple-600 mt-2 uppercase tracking-wider">Whole</span>
+                </div>
+
+                <!-- Part 1 (Given) -->
+                <div class="absolute bottom-0 left-8 flex flex-col items-center">
+                    <div class="w-20 h-20 bg-amber-400 rounded-full circle-node flex items-center justify-center border-4 border-amber-500 text-white text-4xl number-font pop-in" id="node-part1">
+                        4
+                    </div>
+                    <span class="text-xs font-bold text-amber-600 mt-2 uppercase tracking-wider">Part</span>
+                </div>
+
+                <!-- Part 2 (Missing) -->
+                <div class="absolute bottom-0 right-8 flex flex-col items-center">
+                    <div class="w-20 h-20 bg-slate-200 rounded-full circle-node flex items-center justify-center border-4 border-slate-300 text-slate-400 text-4xl number-font border-dashed transition-all duration-300" id="node-part2">
+                        ?
+                    </div>
+                    <span class="text-xs font-bold text-slate-500 mt-2 uppercase tracking-wider">Part</span>
+                </div>
+            </div>
+
+            <!-- Multiple Choice Options -->
+            <div class="grid grid-cols-2 gap-4 mt-6" id="options-container">
+                <!-- Buttons injected by JS -->
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Celebration Overlay (Hidden by default) -->
+    <div id="celebration" class="fixed inset-0 pointer-events-none flex items-center justify-center opacity-0 transition-opacity duration-500 z-50">
+        <div class="text-6xl text-yellow-400 celebrate number-font drop-shadow-lg">
+            <i class="fas fa-star"></i> <span id="celeb-text">Wow (44)!</span> <i class="fas fa-star"></i>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let targetBond = 10;
+        let currentGiven = 0;
+        let correctAnswer = 0;
+        let score = 0;
+        let isAnimating = false;
+
+        // Fun Zubi and standard feedback messages
+        const successMessages = ["Great!", "Awesome!", "Spot On!", "Wow (44)!", "Yes (73)!", "Super!"];
+
+        // DOM Elements
+        const nodeWhole = document.getElementById('node-whole');
+        const nodePart1 = document.getElementById('node-part1');
+        const nodePart2 = document.getElementById('node-part2');
+        const optionsContainer = document.getElementById('options-container');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const feedback = document.getElementById('feedback');
+        const celebration = document.getElementById('celebration');
+        const celebText = document.getElementById('celeb-text');
+
+        // Initialize Game
+        function initGame() {
+            score = 0;
+            updateScoreDisplay();
+            generateQuestion();
+        }
+
+        // Change Target Bond
+        function setTarget(num) {
+            targetBond = num;
+            
+            // Update button styles
+            document.querySelectorAll('.target-btn').forEach(btn => {
+                btn.classList.remove('bg-sky-500', 'text-white', 'border-sky-600', 'shadow-md');
+                btn.classList.add('bg-white', 'text-slate-500', 'border-slate-200');
+            });
+            
+            const activeBtn = document.getElementById(`btn-target-${num}`);
+            activeBtn.classList.remove('bg-white', 'text-slate-500', 'border-slate-200');
+            activeBtn.classList.add('bg-sky-500', 'text-white', 'border-sky-600', 'shadow-md');
+
+            // Reset and start new question
+            score = 0;
+            updateScoreDisplay();
+            generateQuestion();
+        }
+
+        // Generate a new math question
+        function generateQuestion() {
+            isAnimating = false;
+            
+            // Set the Whole node text
+            nodeWhole.textContent = targetBond;
+
+            // Generate Random Part 1
+            currentGiven = Math.floor(Math.random() * (targetBond + 1));
+            correctAnswer = targetBond - currentGiven;
+
+            // Update UI with animation
+            nodePart1.textContent = currentGiven;
+            nodePart1.classList.remove('pop-in');
+            void nodePart1.offsetWidth; // Trigger reflow
+            nodePart1.classList.add('pop-in');
+
+            // Reset Missing Part UI
+            nodePart2.textContent = "?";
+            nodePart2.className = "w-20 h-20 bg-slate-200 rounded-full circle-node flex items-center justify-center border-4 border-slate-300 text-slate-400 text-4xl number-font border-dashed transition-all duration-300";
+
+            // Hide feedback
+            feedback.style.opacity = '0';
+
+            generateOptionButtons();
+        }
+
+        function generateOptionButtons() {
+            // Generate 3 unique wrong answers
+            const options = new Set([correctAnswer]);
+            
+            while(options.size < 4) {
+                // Generate numbers slightly above the target bond to make them plausible but wrong
+                let wrong = Math.floor(Math.random() * (targetBond + Math.max(3, Math.floor(targetBond * 0.1))));
+                options.add(wrong);
+            }
+
+            // Shuffle array
+            const shuffledOptions = Array.from(options).sort(() => Math.random() - 0.5);
+
+            // Render buttons
+            optionsContainer.innerHTML = '';
+            shuffledOptions.forEach(num => {
+                const btn = document.createElement('button');
+                btn.className = "bg-white border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 text-slate-700 font-bold text-3xl py-4 rounded-2xl shadow-sm hover:bg-sky-50 transition-all number-font flex items-center justify-center gap-2";
+                
+                // Add dots representation for smaller numbers to help visualization
+                let dotsHtml = '';
+                if(num <= 10 && num > 0) {
+                   dotsHtml = `<div class="flex flex-wrap gap-1 justify-center w-8 h-8 opacity-40">` + 
+                              Array(num).fill(`<div class="w-2 h-2 rounded-full bg-slate-500"></div>`).join('') + 
+                              `</div>`;
+                }
+
+                btn.innerHTML = `<span>${num}</span> ${dotsHtml}`;
+                btn.onclick = () => handleAnswer(num, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(selectedNumber, buttonElement) {
+            if (isAnimating) return; // Prevent multiple clicks during animation
+
+            if (selectedNumber === correctAnswer) {
+                // CORRECT
+                isAnimating = true;
+                score += 10;
+                updateScoreDisplay();
+
+                // Update the missing node to show the correct answer
+                nodePart2.textContent = correctAnswer;
+                nodePart2.className = "w-20 h-20 bg-emerald-400 rounded-full circle-node flex items-center justify-center border-4 border-emerald-500 text-white text-4xl number-font pop-in";
+                
+                // Style clicked button
+                buttonElement.classList.remove('bg-white', 'border-slate-200', 'text-slate-700');
+                buttonElement.classList.add('bg-emerald-500', 'border-emerald-600', 'text-white');
+
+                // Show feedback message
+                feedback.textContent = successMessages[Math.floor(Math.random() * successMessages.length)];
+                feedback.className = "absolute top-2 left-0 w-full text-center h-8 flex items-center justify-center font-bold text-xl text-emerald-500 transition-opacity duration-300 pop-in";
+                feedback.style.opacity = '1';
+
+                // Occasional big celebration every 50 points
+                if (score > 0 && score % 50 === 0) {
+                    showCelebration();
+                }
+
+                // Wait then next question
+                setTimeout(() => {
+                    generateQuestion();
+                }, 1500);
+
+            } else {
+                // WRONG
+                buttonElement.classList.add('shake', 'bg-red-100', 'text-red-500', 'border-red-200');
+                
+                feedback.textContent = "Try again!";
+                feedback.className = "absolute top-2 left-0 w-full text-center h-8 flex items-center justify-center font-bold text-xl text-red-400 transition-opacity duration-300";
+                feedback.style.opacity = '1';
+
+                setTimeout(() => {
+                    buttonElement.classList.remove('shake', 'bg-red-100', 'text-red-500', 'border-red-200');
+                    feedback.style.opacity = '0';
+                }, 800);
+            }
+        }
+
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = score;
+            scoreDisplay.classList.add('pop-in');
+            setTimeout(() => scoreDisplay.classList.remove('pop-in'), 500);
+        }
+
+        function showCelebration() {
+            celebText.textContent = successMessages[Math.floor(Math.random() * successMessages.length)];
+            celebration.style.opacity = '1';
+            celebration.classList.add('pointer-events-auto');
+            
+            setTimeout(() => {
+                celebration.style.opacity = '0';
+                celebration.classList.remove('pointer-events-auto');
+            }, 2000);
+        }
+
+        // Start game on load
+        window.onload = initGame;
+
+    </script>
+</body>
+</html>
+
+
